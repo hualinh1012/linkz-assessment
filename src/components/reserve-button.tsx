@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Step = "idle" | "confirming" | "paying" | "error";
 
 export function ReserveButton({ seatId, seatLabel }: { seatId: number; seatLabel: string }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [seatTaken, setSeatTaken] = useState(false);
 
   function openDialog() {
     setError(null);
@@ -32,12 +35,16 @@ export function ReserveButton({ seatId, seatLabel }: { seatId: number; seatLabel
       const data = await res.json();
 
       if (!res.ok) {
-        setError(
-          res.status === 409
-            ? "This seat is no longer available. Please choose another."
-            : (data.error ?? "Something went wrong. Please try again."),
-        );
-        setStep("error");
+        if (res.status === 409) {
+          // Close the confirm dialog and show the unavailable notice first.
+          // router.refresh() is deferred to when the user dismisses the notice —
+          // calling it here would unmount this component before seatTaken renders.
+          closeDialog();
+          setSeatTaken(true);
+        } else {
+          setError(data.error ?? "Something went wrong. Please try again.");
+          setStep("error");
+        }
         return;
       }
 
@@ -59,6 +66,7 @@ export function ReserveButton({ seatId, seatLabel }: { seatId: number; seatLabel
         Reserve
       </button>
 
+      {/* Confirm / paying dialog */}
       {step !== "idle" && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
@@ -92,6 +100,32 @@ export function ReserveButton({ seatId, seatLabel }: { seatId: number; seatLabel
                 Choose another seat
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seat unavailable notice — shown after a 409, confirm dialog already closed */}
+      {seatTaken && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          onClick={(e) => { if (e.target === e.currentTarget) { setSeatTaken(false); router.refresh(); } }}
+        >
+          <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl mx-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 text-xl">
+                !
+              </span>
+              <h2 className="text-lg font-semibold text-gray-900">Seat no longer available</h2>
+            </div>
+            <p className="mt-3 text-sm text-gray-500">
+              <strong>{seatLabel}</strong> was just taken by someone else. Please choose a different seat.
+            </p>
+            <button
+              onClick={() => { setSeatTaken(false); router.refresh(); }}
+              className="mt-6 w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-700"
+            >
+              Choose another seat
+            </button>
           </div>
         </div>
       )}

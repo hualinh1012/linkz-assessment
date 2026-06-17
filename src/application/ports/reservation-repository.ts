@@ -19,6 +19,9 @@ export interface CreatePendingResult {
 export interface ReservationRepository {
   findById(id: string): Promise<Reservation | null>;
 
+  /** Returns the user's active (PENDING or CONFIRMED) reservation, or null. */
+  findActiveByUserId(userId: string): Promise<Reservation | null>;
+
   /**
    * Atomically: lock the seat row, verify it is AVAILABLE, create a PENDING
    * reservation + INITIATED payment, and set the seat to PENDING.

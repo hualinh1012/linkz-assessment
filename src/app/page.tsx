@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth, signIn, signOut } from "@/auth";
 import { container } from "@/container";
 import { ReserveButton } from "@/components/reserve-button";
@@ -25,6 +26,11 @@ export default async function HomePage({
 }) {
   const [seats, session] = await Promise.all([container.listSeats.execute(), auth()]);
   const isLoggedIn = !!session?.user;
+
+  const activeReservation = isLoggedIn
+    ? await container.reservationRepo.findActiveByUserId(session!.user!.id!)
+    : null;
+
   const allTaken = seats.length > 0 && seats.every((s) => s.status !== "AVAILABLE");
   const errorMessage = searchParams.error ? ERROR_MESSAGES[searchParams.error] : null;
 
@@ -76,21 +82,52 @@ export default async function HomePage({
       )}
 
       <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {seats.map((seat) => (
-          <li
-            key={seat.id}
-            className={`rounded-lg border-2 p-6 text-center ${STATUS_STYLES[seat.status]}`}
-          >
-            <div className="text-lg font-semibold">{seat.label}</div>
-            <div className="mt-1 text-sm uppercase tracking-wide">{seat.status}</div>
-            {seat.status === "AVAILABLE" && isLoggedIn && (
-              <ReserveButton seatId={seat.id} seatLabel={seat.label} />
-            )}
-            {seat.status === "AVAILABLE" && !isLoggedIn && (
-              <p className="mt-4 text-xs text-green-700">Sign in to reserve</p>
-            )}
-          </li>
-        ))}
+        {seats.map((seat) => {
+          const isMysSeat = activeReservation?.seatId === seat.id;
+          const hasActiveReservation = !!activeReservation;
+
+          return (
+            <li
+              key={seat.id}
+              className={`rounded-lg border-2 p-6 text-center transition-shadow ${
+                isMysSeat
+                  ? "border-blue-500 bg-blue-50 ring-2 ring-blue-400 ring-offset-2 shadow-md"
+                  : STATUS_STYLES[seat.status]
+              }`}
+            >
+              <div className="text-lg font-semibold">{seat.label}</div>
+              <div className={`mt-1 text-sm uppercase tracking-wide ${isMysSeat ? "text-blue-700" : ""}`}>
+                {seat.status}
+              </div>
+
+              {isMysSeat && (
+                <div className="mt-3 flex flex-col items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
+                    ★ Your reservation
+                  </span>
+                  <Link
+                    href={`/reservation/confirmed?id=${activeReservation.id}`}
+                    className="text-xs text-blue-600 underline hover:text-blue-800"
+                  >
+                    View details →
+                  </Link>
+                </div>
+              )}
+
+              {!isMysSeat && seat.status === "AVAILABLE" && isLoggedIn && !hasActiveReservation && (
+                <ReserveButton seatId={seat.id} seatLabel={seat.label} />
+              )}
+
+              {!isMysSeat && seat.status === "AVAILABLE" && isLoggedIn && hasActiveReservation && (
+                <p className="mt-4 text-xs text-gray-400">You already have a reservation</p>
+              )}
+
+              {seat.status === "AVAILABLE" && !isLoggedIn && (
+                <p className="mt-4 text-xs text-green-700">Sign in to reserve</p>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <DevPanel />

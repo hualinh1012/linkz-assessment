@@ -27,6 +27,14 @@ export class PrismaReservationRepository implements ReservationRepository {
     return r ? toDomain(r) : null;
   }
 
+  async findActiveByUserId(userId: string): Promise<Reservation | null> {
+    const r = await this.prisma.reservation.findFirst({
+      where: { userId, status: { in: ["PENDING", "CONFIRMED"] } },
+      orderBy: { createdAt: "desc" },
+    });
+    return r ? toDomain(r) : null;
+  }
+
   async createPendingForSeat(input: CreatePendingInput): Promise<CreatePendingResult> {
     try {
       return await this.prisma.$transaction(async (tx) => {
