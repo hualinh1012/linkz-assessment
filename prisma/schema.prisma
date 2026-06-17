@@ -1,0 +1,99 @@
+// Linkz Seat Reservation Platform — Prisma schema.
+// Source of truth: documentation/TSD/1.3. Database Schema.md
+//
+// NOTE: the two partial unique indexes that enforce "one active reservation
+// per user" and "one active reservation per seat" CANNOT be expressed here
+// (Prisma has no partial-index support). They are applied via a raw SQL
+// migration — see prisma/sql/partial_unique_indexes.sql and the README.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum SeatStatus {
+  AVAILABLE
+  PENDING
+  RESERVED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  EXPIRED
+  VOIDED
+  REFUNDED
+}
+
+// ─── Tables ───────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(uuid())
+  keycloakId String   @unique @map("keycloak_id")
+  email      String   @unique
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Seat {
+  id        Int        @id
+  label     String     @unique
+  status    SeatStatus @default(AVAILABLE)
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@map("seats")
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  seatId    Int               @map("seat_id")
+  status    ReservationStatus @default(PENDING)
+  expiresAt DateTime          @map("expires_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  seat    Seat     @relation(fields: [seatId], references: [id])
+  payment Payment?
+
+  @@index([userId])
+  @@index([seatId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("reservations")
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  reservationId     String        @unique @map("reservation_id")
+  axsTransactionRef String?       @map("axs_transaction_ref")
+  status            PaymentStatus @default(INITIATED)
+  amountCents       Int           @map("amount_cents")
+  currency          String        @default("SGD")
+  initiatedAt       DateTime      @default(now()) @map("initiated_at")
+  completedAt       DateTime?     @map("completed_at")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+
+  @@map("payments")
+}

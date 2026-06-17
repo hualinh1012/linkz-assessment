@@ -1,0 +1,50 @@
+# Local development dependencies for the Linkz Seat Reservation Platform.
+# The Next.js app itself runs on the host (`npm run dev`); this brings up
+# PostgreSQL (app + Keycloak databases) and a self-hosted Keycloak.
+# See documentation/TSD/1.7. Environment & Configuration.md §5.3.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: linkz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: linkz
+      POSTGRES_PASSWORD: linkz_dev
+      POSTGRES_DB: linkz_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Creates the separate keycloak_db on first boot (Postgres only creates POSTGRES_DB by default).
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkz -d linkz_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: linkz-keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: linkz
+      KC_DB_PASSWORD: linkz_dev
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      # Dev-only: relax hostname/HTTPS requirements. Do NOT use start-dev in production.
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,49 @@
+{
+  "name": "linkz-seat-reservation",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:deploy": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:seed": "dotenv -e .env.local -- prisma db seed",
+    "db:reset": "dotenv -e .env.local -- prisma migrate reset",
+    "verify:reservation": "dotenv -e .env.local -- tsx scripts/verify-reservation.ts",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "prisma": {
+    "seed": "dotenv -e .env.local -- tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "jose": "^6.2.3",
+    "next": "14.2.35",
+    "next-auth": "^5.0.0-beta.31",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "dotenv-cli": "^7.4.2",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.35",
+    "postcss": "^8.4.39",
+    "prisma": "^5.18.0",
+    "tailwindcss": "^3.4.6",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}
