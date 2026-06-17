@@ -25,6 +25,7 @@ export class ConfirmPaymentUseCase {
   ) {}
 
   async execute(input: ConfirmPaymentInput): Promise<ConfirmPaymentOutcome> {
+    console.log('input', input)
     const payment = await this.payments.findById(input.paymentId);
     if (!payment) throw new PaymentNotFoundError(input.paymentId);
 

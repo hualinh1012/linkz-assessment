@@ -19,7 +19,8 @@
     "db:reset": "dotenv -e .env.local -- prisma migrate reset",
     "verify:reservation": "dotenv -e .env.local -- tsx scripts/verify-reservation.ts",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "mock:axs": "node mock/axs-server.mjs"
   },
   "prisma": {
     "seed": "dotenv -e .env.local -- tsx prisma/seed.ts"

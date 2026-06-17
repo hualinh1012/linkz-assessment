@@ -1,6 +1,7 @@
 import { auth, signIn, signOut } from "@/auth";
 import { container } from "@/container";
 import { ReserveButton } from "@/components/reserve-button";
+import { DevPanel } from "@/components/dev-panel";
 import type { SeatStatus } from "@/domain/seat";
 
 // SSR the public seat view — always read fresh from PostgreSQL (no cache).
@@ -83,7 +84,7 @@ export default async function HomePage({
             <div className="text-lg font-semibold">{seat.label}</div>
             <div className="mt-1 text-sm uppercase tracking-wide">{seat.status}</div>
             {seat.status === "AVAILABLE" && isLoggedIn && (
-              <ReserveButton seatId={seat.id} />
+              <ReserveButton seatId={seat.id} seatLabel={seat.label} />
             )}
             {seat.status === "AVAILABLE" && !isLoggedIn && (
               <p className="mt-4 text-xs text-green-700">Sign in to reserve</p>
@@ -91,6 +92,8 @@ export default async function HomePage({
           </li>
         ))}
       </ul>
+
+      <DevPanel />
     </main>
   );
 }

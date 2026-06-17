@@ -15,7 +15,7 @@ export default async function ConfirmedPage({
   if (!session?.user) redirect("/");
 
   const reservationId = searchParams.id;
-  if (!reservationId) redirect("/?error=payment_failed");
+  if (!reservationId) redirect("/payment/failed");
 
   const [reservation, payment, seats] = await Promise.all([
     container.reservationRepo.findById(reservationId),
@@ -27,7 +27,7 @@ export default async function ConfirmedPage({
   if (!reservation || reservation.userId !== session.user.id) redirect("/");
 
   // Cancelled → treat as failed payment.
-  if (reservation.status === "CANCELLED") redirect("/?error=payment_failed");
+  if (reservation.status === "CANCELLED") redirect("/payment/failed");
 
   const seat = seats.find((s) => s.id === reservation.seatId);
   const seatLabel = seat?.label ?? `Seat ${reservation.seatId}`;

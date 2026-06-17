@@ -10,28 +10,31 @@ import type {
 
 export class AxsPaymentGateway implements PaymentGateway {
   async buildPaymentPageUrl(input: BuildPaymentPageInput): Promise<string> {
-    const secret = new TextEncoder().encode(required("AXS_API_SECRET"));
-    const clientId = required("AXS_CLIENT_ID");
     const checkoutUrl = required("AXS_CHECKOUT_URL");
     const merchantLinkId = required("AXS_MERCHANT_LINK_ID");
-
-    const payload = {
-      clientId,
-      amount: input.amountCents,
-      currency: "SGD",
+    const baseParams = {
       merchantRef: input.paymentId,
-      webhookUrl: `${input.baseUrl}/api/public/payment/callback`,
-      successUrl: `${input.baseUrl}/reservation/confirmed?id=${input.reservationId}`,
-      failUrl: `${input.baseUrl}/seats?error=payment_failed`,
+      amount:      String(input.amountCents),
+      currency:    "SGD",
+      webhookUrl:  `${input.baseUrl}/api/public/payment/callback`,
+      successUrl:  `${input.baseUrl}/reservation/confirmed?id=${input.reservationId}`,
+      failUrl:     `${input.baseUrl}/payment/failed`,
     };
 
+    // When pointing at the local mock server, skip JWE — pass plain query params
+    // so the mock page needs no crypto. Production always uses JWE.
+    if (checkoutUrl.includes("localhost")) {
+      return `${checkoutUrl}/hpp/checkout/${merchantLinkId}?${new URLSearchParams(baseParams)}`;
+    }
+
+    const secret     = new TextEncoder().encode(required("AXS_API_SECRET"));
+    const clientId   = required("AXS_CLIENT_ID");
     const jwe = await new CompactEncrypt(
-      new TextEncoder().encode(JSON.stringify(payload)),
+      new TextEncoder().encode(JSON.stringify({ clientId, ...baseParams, amount: input.amountCents })),
     )
       .setProtectedHeader({
         alg: "PBES2-HS512+A256KW",
         enc: "A256GCM",
-        // Random 16-byte salt per request as required by the AXS spec.
         p2s: randomBytes(16),
         p2c: 1000,
         kid: clientId,

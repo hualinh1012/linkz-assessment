@@ -6,15 +6,27 @@ import { toHttpError } from "@/lib/http/errors";
 export async function POST(req: NextRequest) {
   const raw = await req.text();
 
-  // Authentication: JWE decryption. Any tampered or forged payload will fail here.
+  // Authentication: JWE decryption. Any tampered or forged payload fails here.
+  // In non-production the mock server sends plain JSON — accepted as a fallback.
   let payload: Awaited<ReturnType<typeof container.gateway.decryptWebhook>>;
   try {
     payload = await container.gateway.decryptWebhook(raw);
   } catch {
-    return NextResponse.json(
-      { error: "Invalid webhook", code: "UNAUTHORIZED" },
-      { status: 401 },
-    );
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid webhook", code: "UNAUTHORIZED" },
+          { status: 401 },
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: "Invalid webhook", code: "UNAUTHORIZED" },
+        { status: 401 },
+      );
+    }
   }
 
   try {
