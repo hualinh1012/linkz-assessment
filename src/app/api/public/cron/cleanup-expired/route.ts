@@ -9,6 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/config/env";
 import { container } from "@/container";
+import type { CleanupExpiredResponse } from "@/lib/http/dto";
 
 export async function GET(req: NextRequest) {
   const secret = env().CRON_SECRET;
@@ -17,5 +18,6 @@ export async function GET(req: NextRequest) {
   }
 
   const released = await container.expireReservations.execute();
-  return NextResponse.json({ released });
+  const body: CleanupExpiredResponse = { released };
+  return NextResponse.json(body);
 }

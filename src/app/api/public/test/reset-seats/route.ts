@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/config/env";
 import { resetAllSeats } from "@/infrastructure/persistence/test-reset";
+import type { ResetSeatsResponse } from "@/lib/http/dto";
 
 // Test-only backdoor (TSD/2.6). Double-guarded: non-production + secret token.
 // Returns 404 (not 401/403) so its existence is not revealed.
@@ -16,5 +17,6 @@ export async function POST(req: NextRequest) {
   }
 
   const seatsFreed = await resetAllSeats();
-  return NextResponse.json({ reset: true, seatsFreed });
+  const body: ResetSeatsResponse = { reset: true, seatsFreed };
+  return NextResponse.json(body);
 }

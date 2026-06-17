@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { container } from "@/container";
 import { toHttpError } from "@/lib/http/errors";
+import type { PaymentCallbackResponse } from "@/lib/http/dto";
 
 // POST — AXS server-to-server webhook (JWE-encrypted body, idempotent). TSD/2.4 §3.
 export async function POST(req: NextRequest) {
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
       transactionRef: payload.transactionRef,
       status: payload.status,
     });
-    return NextResponse.json({ received: true });
+    const body: PaymentCallbackResponse = { received: true };
+    return NextResponse.json(body);
   } catch (err) {
     return toHttpError(err);
   }

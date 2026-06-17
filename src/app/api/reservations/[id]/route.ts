@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { container } from "@/container";
 import { toHttpError } from "@/lib/http/errors";
+import type { GetReservationResponse, CancelReservationResponse } from "@/lib/http/dto";
 
 // GET /api/reservations/:id — returns current status for the confirmed page to poll.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const payment = await container.paymentRepo.findByReservationId(params.id);
 
-    return NextResponse.json({
+    const body: GetReservationResponse = {
       reservation: {
         id: reservation.id,
         seatId: reservation.seatId,
@@ -30,7 +31,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       payment: payment
         ? { id: payment.id, status: payment.status, amountCents: payment.amountCents }
         : null,
-    });
+    };
+    return NextResponse.json(body);
   } catch (err) {
     return toHttpError(err);
   }
@@ -50,11 +52,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       reservationId: params.id,
     });
 
-    return NextResponse.json({
+    const body: CancelReservationResponse = {
       reservation: { id: params.id, status: "CANCELLED" },
       payment: { status: paymentStatus },
       seat: { status: "AVAILABLE" },
-    });
+    };
+    return NextResponse.json(body);
   } catch (err) {
     return toHttpError(err);
   }

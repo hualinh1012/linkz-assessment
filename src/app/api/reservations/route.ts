@@ -2,8 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { container } from "@/container";
 import { toHttpError } from "@/lib/http/errors";
+import type { ReserveSeatRequest, ReserveSeatResponse } from "@/lib/http/dto";
 
-const bodySchema = z.object({ seatId: z.number().int().positive() });
+const bodySchema = z.object({ seatId: z.number().int().positive() } satisfies Record<keyof ReserveSeatRequest, unknown>);
 
 // POST /api/reservations — JWT required (middleware sets x-user-id).
 export async function POST(req: NextRequest) {
@@ -31,19 +32,17 @@ export async function POST(req: NextRequest) {
 
     const result = await container.reserveSeat.execute({ userId, seatId: parsed.data.seatId });
 
-    return NextResponse.json(
-      {
-        reservation: {
-          id: result.reservation.id,
-          seatId: result.reservation.seatId,
-          status: result.reservation.status,
-          expiresAt: result.reservation.expiresAt.toISOString(),
-        },
-        payment: { id: result.paymentId, status: "INITIATED" },
-        redirectUrl: result.redirectUrl,
+    const body: ReserveSeatResponse = {
+      reservation: {
+        id: result.reservation.id,
+        seatId: result.reservation.seatId,
+        status: result.reservation.status,
+        expiresAt: result.reservation.expiresAt.toISOString(),
       },
-      { status: 201 },
-    );
+      payment: { id: result.paymentId, status: "INITIATED" },
+      redirectUrl: result.redirectUrl,
+    };
+    return NextResponse.json(body, { status: 201 });
   } catch (err) {
     return toHttpError(err);
   }
