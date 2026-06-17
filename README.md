@@ -81,8 +81,8 @@ Full reference in `documentation/TSD/1.7. Environment & Configuration.md`. Minim
 | `AXS_API_KEY` | bearer token for void/refund API calls |
 | `AXS_CHECKOUT_URL` | `https://checkout.svc.uat.pay.axs.com.sg` (sandbox) |
 | `AXS_API_BASE_URL` | `https://api.svc.uat.axsasia.com` (sandbox) |
-| `CRON_SECRET` | protects `GET /api/cron/cleanup-expired` |
-| `TEST_RESET_TOKEN` | enables `POST /api/test/reset-seats` (non-production only) |
+| `CRON_SECRET` | protects `GET /api/public/cron/cleanup-expired` |
+| `TEST_RESET_TOKEN` | enables `POST /api/public/test/reset-seats` (non-production only) |
 
 ## Scripts
 
@@ -108,14 +108,14 @@ Full reference in `documentation/TSD/1.7. Environment & Configuration.md`. Minim
 | **Scaffold** | Next.js 14 strict TS, Tailwind, ESLint, Docker Compose (Postgres 16 + Keycloak 25), `.env.example` |
 | **Clean Architecture** | Full layer tree (`domain/`, `application/`, `infrastructure/`, `app/`), composition root, zod env config |
 | **Database** | Prisma schema, migrations (`init` + `add_partial_unique_indexes`), `seed.ts` (3 seats) |
-| **Read path** | `GET /api/seats` + SSR seat page (`ListSeats` → `PrismaSeatRepository`) |
+| **Read path** | `GET /api/public/seats` + SSR seat page (`ListSeats` → `PrismaSeatRepository`) |
 | **Auth** | Auth.js (NextAuth v5) Keycloak provider, login/logout, Edge session middleware (forwards `x-user-id`), first-sign-in user provisioning (`ProvisionUser`) |
 | **Reservation writes** | `PrismaReservationRepository`: `createPendingForSeat` / `confirmAndReserveSeat` / `failAndReleaseSeat` / `cancelConfirmedAndReleaseSeat` — all inside `SELECT FOR UPDATE` transactions, partial-index violations → domain errors, idempotent. Integration-verified via `npm run verify:reservation`. |
 | **AXS payment link** | `AxsPaymentGateway.buildPaymentPageUrl` — JWE (`PBES2-HS512+A256KW` / `A256GCM`) encrypted payload with `clientId`, `amount`, `merchantRef`, `webhookUrl`, `successUrl`, `failUrl` |
-| **AXS webhook handler** | `AxsPaymentGateway.decryptWebhook` — `compactDecrypt` with `AXS_API_SECRET`; `POST /api/payment/callback` authenticates via JWE decryption, then calls `ConfirmPaymentUseCase` (idempotent) |
+| **AXS webhook handler** | `AxsPaymentGateway.decryptWebhook` — `compactDecrypt` with `AXS_API_SECRET`; `POST /api/public/payment/callback` authenticates via JWE decryption, then calls `ConfirmPaymentUseCase` (idempotent) |
 | **AXS void / refund** | `AxsPaymentGateway.reversePayment` — void-first, refund-on-failure; `DELETE /api/reservations/:id` calls `CancelReservationUseCase` |
-| **Expiry cleanup** | `instrumentation.ts` — 5-min in-process timer (dev/testing); `GET /api/cron/cleanup-expired` — manually-triggerable endpoint for testing and external schedulers. See TSD/2.5 §2 for production options (Docker Compose cron / AWS EventBridge). |
-| **Test backdoor** | `POST /api/test/reset-seats` — resets all seats to AVAILABLE (non-production, token-gated) |
+| **Expiry cleanup** | `instrumentation.ts` — 5-min in-process timer (dev/testing); `GET /api/public/cron/cleanup-expired` — manually-triggerable endpoint for testing and external schedulers. See TSD/2.5 §2 for production options (Docker Compose cron / AWS EventBridge). |
+| **Test backdoor** | `POST /api/public/test/reset-seats` — resets all seats to AVAILABLE (non-production, token-gated) |
 
 ### Remaining
 
@@ -129,14 +129,15 @@ Full reference in `documentation/TSD/1.7. Environment & Configuration.md`. Minim
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/api/seats` | Public | List all seats with status |
+| `GET` | `/api/public/seats` | Public | List all seats with status |
 | `POST` | `/api/reservations` | JWT | Create PENDING reservation + return AXS redirect URL |
+| `GET` | `/api/reservations/:id` | JWT | Poll reservation + payment status |
 | `DELETE` | `/api/reservations/:id` | JWT | Cancel CONFIRMED reservation (void/refund + release seat) |
-| `POST` | `/api/payment/callback` | JWE | AXS webhook — decrypts payload, updates seat/reservation/payment state |
-| `GET` | `/api/cron/cleanup-expired` | `x-cron-secret` | Trigger expiry cleanup manually |
-| `POST` | `/api/test/reset-seats` | `x-test-token` | Reset all seats (non-production only) |
+| `POST` | `/api/public/payment/callback` | JWE (self-guarded) | AXS webhook — decrypts payload, updates seat/reservation/payment state |
+| `GET` | `/api/public/cron/cleanup-expired` | `x-cron-secret` (self-guarded) | Trigger expiry cleanup manually |
+| `POST` | `/api/public/test/reset-seats` | `x-test-token` (self-guarded) | Reset all seats (non-production only) |
 
-Public middleware bypass paths: `/`, `/api/seats`, `/api/payment/callback`. All other `/api/*` routes require a valid session (`x-user-id` header set by `src/middleware.ts`). Errors use `{ error, code }` — codes in `TSD/1.4 §2.3`.
+Route layout: all public routes live under `/api/public/` and self-guard with their own mechanism; `/api/auth/*` handles the OIDC handshake; everything else under `/api/*` requires a JWT session (`x-user-id` header set by `src/middleware.ts`). Errors use `{ error, code }` — codes in `TSD/1.4 §2.3`.
 
 ## Core domain invariants
 

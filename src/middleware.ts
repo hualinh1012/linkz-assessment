@@ -7,13 +7,11 @@ import { authConfig } from "@/auth.config";
 // stay decoupled from the auth mechanism. See TSD/1.4 §2.6.
 const { auth } = NextAuth(authConfig);
 
-// Public API paths bypass auth (TSD/1.4 §2.6). `/api/test/*` and `/api/auth/*`
-// self-guard (test token / OIDC handshake).
+// Public API paths bypass auth (TSD/1.4 §2.6). All public routes live under
+// /api/public/ and self-guard; /api/auth/* handles the OIDC handshake.
 function isPublicApi(pathname: string): boolean {
-  if (pathname === "/api/seats") return true;
-  if (pathname.startsWith("/api/payment/callback")) return true;
-  if (pathname.startsWith("/api/auth/")) return true;
-  if (pathname.startsWith("/api/test/")) return true;
+  if (pathname.startsWith("/api/public/")) return true; // all public routes live here; self-guarded where needed
+  if (pathname.startsWith("/api/auth/")) return true;   // Auth.js OIDC handshake
   return false;
 }
 

@@ -20,7 +20,7 @@ export class AxsPaymentGateway implements PaymentGateway {
       amount: input.amountCents,
       currency: "SGD",
       merchantRef: input.paymentId,
-      webhookUrl: `${input.baseUrl}/api/payment/callback`,
+      webhookUrl: `${input.baseUrl}/api/public/payment/callback`,
       successUrl: `${input.baseUrl}/reservation/confirmed?id=${input.reservationId}`,
       failUrl: `${input.baseUrl}/seats?error=payment_failed`,
     };

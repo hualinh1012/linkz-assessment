@@ -1,5 +1,4 @@
 export interface User {
-  id: string;
-  keycloakId: string;
+  id: string; // Keycloak subject (sub)
   email: string;
 }

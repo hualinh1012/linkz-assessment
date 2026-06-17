@@ -40,12 +40,13 @@ enum PaymentStatus {
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
+// id is the Keycloak subject (sub) — passed directly from the session so no
+// secondary lookup is needed when the reservation FK is resolved.
 model User {
-  id         String   @id @default(uuid())
-  keycloakId String   @unique @map("keycloak_id")
-  email      String   @unique
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String   @id
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   reservations Reservation[]
 

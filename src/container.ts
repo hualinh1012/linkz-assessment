@@ -27,10 +27,14 @@ const clock = new SystemClock();
 
 export const container = {
   gateway,
+  // use cases
   listSeats: new ListSeatsUseCase(seats),
   reserveSeat: new ReserveSeatUseCase(reservations, gateway, clock, env().SEAT_PRICE_CENTS, env().NEXT_PUBLIC_APP_URL),
   confirmPayment: new ConfirmPaymentUseCase(reservations, payments),
   cancelReservation: new CancelReservationUseCase(reservations, payments, gateway),
   provisionUser: new ProvisionUserUseCase(users),
   expireReservations: new ExpireReservationsUseCase(reservations),
+  // repositories — for direct use in SSR server components only
+  reservationRepo: reservations,
+  paymentRepo: payments,
 } as const;

@@ -9,6 +9,7 @@ const bodySchema = z.object({ seatId: z.number().int().positive() });
 export async function POST(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
+    const userEmail = req.headers.get("x-user-email");
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
@@ -19,6 +20,13 @@ export async function POST(req: NextRequest) {
         { error: "Invalid request body", code: "UNPROCESSABLE" },
         { status: 422 },
       );
+    }
+
+    // Ensure the user row exists before the reservation FK is checked.
+    // The signIn event provisions on login, but this covers sessions that
+    // were live before the provision ran (e.g. across a server restart).
+    if (userEmail) {
+      await container.provisionUser.execute({ keycloakId: userId, email: userEmail });
     }
 
     const result = await container.reserveSeat.execute({ userId, seatId: parsed.data.seatId });

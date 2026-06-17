@@ -41,7 +41,7 @@ async function resetState() {
 
 async function makeUser(tag: string) {
   return prisma.user.create({
-    data: { keycloakId: `kc-${tag}-${Date.now()}`, email: `${tag}@verify.test` },
+    data: { id: `kc-${tag}-${Date.now()}`, email: `${tag}@verify.test` },
   });
 }
 
