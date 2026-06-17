@@ -2,6 +2,8 @@
 
 A public seat-reservation web app: anyone can view 3 seats; authenticated users reserve one by completing an AXS Checkout payment. Built to evolve from 3 fixed seats toward a 100K-CCU platform without a rewrite.
 
+**Demo:** [`demo.mov`](./demo.mov)
+
 **Design docs are the source of truth** — see [`documentation/`](./documentation) (SAD = architecture & ADRs, TSD = implementation specs) and [`CLAUDE.md`](./CLAUDE.md). Conform to them; if you deviate, update the doc.
 
 ## Stack
